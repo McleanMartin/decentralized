@@ -257,11 +257,9 @@ class OrderFromCartView(APIView):
         order.total_amount = total_amount
         order.save()
 
-        # Clear the cart
         items.delete()
         cart.delete()
 
-        # Prepare response data
         order_data = {
             'id': order.id,
             'created_at': order.created_at,
