@@ -1,2 +1,1 @@
 # decentralized
-# decentralized
