@@ -1,3 +1,4 @@
+from datetime import timedelta
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
@@ -66,14 +67,43 @@ class Order(models.Model):
     tenant = models.ForeignKey(Tenant, related_name='orders', on_delete=models.CASCADE)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
+    def __str__(self):
+        return self.tenant.name
+
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
     product = models.ForeignKey(Product, related_name='order_items', on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
+    def __str__(self):
+        return str(self.pk)
+
 class Delivery(models.Model):
     order = models.OneToOneField(Order, related_name='delivery', on_delete=models.CASCADE)
     address = models.TextField()
     delivered = models.BooleanField(default=False)
     delivery_date = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return self.order.tenant.name
+
+class Cart(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='carts')
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='carts')
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(default=timezone.now() + timedelta(hours=24))
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    def __str__(self):
+        return f"Cart for {self.user.email} at {self.tenant.name}"
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField()
+
+    def __str__(self):
+        return f"{self.quantity} of {self.product.name}"

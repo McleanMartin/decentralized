@@ -35,3 +35,13 @@ class DeliverySchema(BaseModel):
     address: str
     delivered: bool
     delivery_date: Optional[datetime] = None
+
+class CartItemSchema(BaseModel):
+    product_id: int
+    quantity: int = Field(..., gt=0)
+
+class AddToCartSchema(BaseModel):
+    items: List[CartItemSchema]
+
+class OrderFromCartSchema(BaseModel):
+    cart_id: int

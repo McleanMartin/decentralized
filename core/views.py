@@ -1,7 +1,6 @@
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.parsers import JSONParser
@@ -10,6 +9,14 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import Tenant, Product, Order, OrderItem, Delivery
 from .schemas import TenantSchema, ProductSchema, OrderSchema, OrderItemSchema, DeliverySchema
 from pydantic import ValidationError
+import json
+
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse, HttpResponseBadRequest
+from .models import Product, Cart, CartItem, Order, OrderItem, Tenant
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 import json
 
 def parse_json_request(request):
