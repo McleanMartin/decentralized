@@ -21,7 +21,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
 
-
 class Tenant(models.Model):
     name = models.CharField(max_length=100)
     address = models.TextField()
