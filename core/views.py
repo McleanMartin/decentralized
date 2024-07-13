@@ -1,22 +1,15 @@
+from datetime import timezone
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
-from rest_framework.parsers import JSONParser
+from rest_framework import status
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .models import Tenant, Product, Order, OrderItem, Delivery
-from .schemas import TenantSchema, ProductSchema, OrderSchema, OrderItemSchema, DeliverySchema
+from .models import Cart, CartItem, Tenant, Product, Order, OrderItem, Delivery
+from .schemas import TenantSchema, ProductSchema, OrderSchema, OrderItemSchema, DeliverySchema ,AddToCartSchema, OrderFromCartSchema
 from pydantic import ValidationError
-import json
-
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse, HttpResponseBadRequest
-from .models import Product, Cart, CartItem, Order, OrderItem, Tenant
-from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
-from django.utils import timezone
 import json
 
 def parse_json_request(request):
@@ -204,3 +197,77 @@ class DeliveryView(APIView):
             setattr(delivery, key, value)
         delivery.save()
         return JsonResponse(DeliverySchema.from_orm(delivery).dict())
+
+class CartView(APIView):
+    def get(self, request, tenant_id):
+        tenant = get_object_or_404(Tenant, id=tenant_id)
+        carts = Cart.objects.filter(user=request.user, tenant=tenant, expires_at__gt=timezone.now())
+        cart_data = []
+        for cart in carts:
+            cart_items = CartItem.objects.filter(cart=cart)
+            serialized_items = [{'product_id': item.product.id, 'quantity': item.quantity} for item in cart_items]
+            cart_data.append({
+                'id': cart.id,
+                'user': cart.user.email,
+                'tenant': cart.tenant.name,
+                'created_at': cart.created_at,
+                'expires_at': cart.expires_at,
+                'items': serialized_items
+            })
+        return Response(cart_data)
+
+    def post(self, request, tenant_id):
+        tenant = get_object_or_404(Tenant, id=tenant_id)
+        try:
+            data = AddToCartSchema.parse_obj(request.data)
+        except ValidationError as e:
+            return Response(e.errors(), status=status.HTTP_400_BAD_REQUEST)
+
+        cart, created = Cart.objects.get_or_create(user=request.user, tenant=tenant, expires_at__gt=timezone.now())
+
+        for item_data in data.items:
+            product = get_object_or_404(Product, id=item_data.product_id, tenant=tenant)
+            cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
+            if not created:
+                cart_item.quantity += item_data.quantity
+            else:
+                cart_item.quantity = item_data.quantity
+            cart_item.save()
+
+        return Response({'message': 'Items added to cart'}, status=status.HTTP_201_CREATED)
+
+class OrderFromCartView(APIView):
+    def post(self, request):
+        try:
+            data = OrderFromCartSchema.parse_obj(request.data)
+        except ValidationError as e:
+            return Response(e.errors(), status=status.HTTP_400_BAD_REQUEST)
+
+        cart = get_object_or_404(Cart, id=data.cart_id, user=request.user, expires_at__gt=timezone.now())
+        items = CartItem.objects.filter(cart=cart)
+        if not items:
+            return Response({'message': 'Cart is empty or expired'}, status=status.HTTP_BAD_REQUEST)
+
+        order = Order.objects.create(tenant=cart.tenant, total_amount=0)
+        total_amount = 0
+        for item in items:
+            OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity, price=item.product.price)
+            total_amount += item.quantity * item.product.price
+
+        order.total_amount = total_amount
+        order.save()
+
+        # Clear the cart
+        items.delete()
+        cart.delete()
+
+        # Prepare response data
+        order_data = {
+            'id': order.id,
+            'created_at': order.created_at,
+            'tenant': order.tenant.name,
+            'total_amount': order.total_amount,
+            'items': [{'product_id': item.product.id, 'quantity': item.quantity, 'price': item.price} for item in order.items.all()]
+        }
+
+        return Response(order_data, status=status.HTTP_201_CREATED)
