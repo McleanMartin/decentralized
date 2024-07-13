@@ -22,14 +22,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.email
 
 
-class TokenModel(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    created = models.DateTimeField(default=timezone.now)
-
-    def __str__(self):
-        return str(self.token)
-
 class Tenant(models.Model):
     name = models.CharField(max_length=100)
     address = models.TextField()
