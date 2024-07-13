@@ -1,14 +1,14 @@
-from datetime import timezone
+from django.http import JsonResponse, HttpResponseBadRequest
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import SessionAuthentication, BasicAuthentication
-from rest_framework import status
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from .models import Cart, CartItem, Tenant, Product, Order, OrderItem, Delivery
-from .schemas import TenantSchema, ProductSchema, OrderSchema, OrderItemSchema, DeliverySchema ,AddToCartSchema, OrderFromCartSchema
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from .models import Tenant, Product, Order, OrderItem, Delivery, Cart, CartItem
+from .schemas import TenantSchema, ProductSchema, OrderSchema, OrderItemSchema, DeliverySchema, AddToCartSchema, OrderFromCartSchema
 from pydantic import ValidationError
 import json
 
@@ -19,7 +19,7 @@ def parse_json_request(request):
         return None
 
 class TenantView(APIView):
-    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -30,11 +30,11 @@ class TenantView(APIView):
     def post(self, request):
         data = parse_json_request(request)
         if data is None:
-            return Response({"error": "Invalid JSON"}, status=400)
+            return HttpResponseBadRequest("Invalid JSON")
         try:
             schema = TenantSchema(**data)
         except ValidationError as e:
-            return Response(e.errors(), status=400)
+            return JsonResponse(e.errors(), status=400)
         tenant = Tenant(**schema.dict(exclude_unset=True))
         tenant.save()
         return JsonResponse(TenantSchema.from_orm(tenant).dict())
@@ -43,19 +43,19 @@ class TenantView(APIView):
     def put(self, request, pk):
         data = parse_json_request(request)
         if data is None:
-            return Response({"error": "Invalid JSON"}, status=400)
+            return HttpResponseBadRequest("Invalid JSON")
         tenant = get_object_or_404(Tenant, pk=pk)
         try:
             schema = TenantSchema(**data)
         except ValidationError as e:
-            return Response(e.errors(), status=400)
+            return JsonResponse(e.errors(), status=400)
         for key, value in schema.dict(exclude_unset=True).items():
             setattr(tenant, key, value)
         tenant.save()
         return JsonResponse(TenantSchema.from_orm(tenant).dict())
 
 class ProductView(APIView):
-    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -66,11 +66,11 @@ class ProductView(APIView):
     def post(self, request):
         data = parse_json_request(request)
         if data is None:
-            return Response({"error": "Invalid JSON"}, status=400)
+            return HttpResponseBadRequest("Invalid JSON")
         try:
             schema = ProductSchema(**data)
         except ValidationError as e:
-            return Response(e.errors(), status=400)
+            return JsonResponse(e.errors(), status=400)
         product = Product(**schema.dict(exclude_unset=True))
         product.save()
         return JsonResponse(ProductSchema.from_orm(product).dict())
@@ -79,19 +79,19 @@ class ProductView(APIView):
     def put(self, request, pk):
         data = parse_json_request(request)
         if data is None:
-            return Response({"error": "Invalid JSON"}, status=400)
+            return HttpResponseBadRequest("Invalid JSON")
         product = get_object_or_404(Product, pk=pk)
         try:
             schema = ProductSchema(**data)
         except ValidationError as e:
-            return Response(e.errors(), status=400)
+            return JsonResponse(e.errors(), status=400)
         for key, value in schema.dict(exclude_unset=True).items():
             setattr(product, key, value)
         product.save()
         return JsonResponse(ProductSchema.from_orm(product).dict())
 
 class OrderView(APIView):
-    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -102,11 +102,11 @@ class OrderView(APIView):
     def post(self, request):
         data = parse_json_request(request)
         if data is None:
-            return Response({"error": "Invalid JSON"}, status=400)
+            return HttpResponseBadRequest("Invalid JSON")
         try:
             schema = OrderSchema(**data)
         except ValidationError as e:
-            return Response(e.errors(), status=400)
+            return JsonResponse(e.errors(), status=400)
         order = Order(**schema.dict(exclude_unset=True))
         order.save()
         return JsonResponse(OrderSchema.from_orm(order).dict())
@@ -115,19 +115,19 @@ class OrderView(APIView):
     def put(self, request, pk):
         data = parse_json_request(request)
         if data is None:
-            return Response({"error": "Invalid JSON"}, status=400)
+            return HttpResponseBadRequest("Invalid JSON")
         order = get_object_or_404(Order, pk=pk)
         try:
             schema = OrderSchema(**data)
         except ValidationError as e:
-            return Response(e.errors(), status=400)
+            return JsonResponse(e.errors(), status=400)
         for key, value in schema.dict(exclude_unset=True).items():
             setattr(order, key, value)
         order.save()
         return JsonResponse(OrderSchema.from_orm(order).dict())
 
 class OrderItemView(APIView):
-    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -138,11 +138,11 @@ class OrderItemView(APIView):
     def post(self, request):
         data = parse_json_request(request)
         if data is None:
-            return Response({"error": "Invalid JSON"}, status=400)
+            return HttpResponseBadRequest("Invalid JSON")
         try:
             schema = OrderItemSchema(**data)
         except ValidationError as e:
-            return Response(e.errors(), status=400)
+            return JsonResponse(e.errors(), status=400)
         order_item = OrderItem(**schema.dict(exclude_unset=True))
         order_item.save()
         return JsonResponse(OrderItemSchema.from_orm(order_item).dict())
@@ -151,19 +151,19 @@ class OrderItemView(APIView):
     def put(self, request, pk):
         data = parse_json_request(request)
         if data is None:
-            return Response({"error": "Invalid JSON"}, status=400)
+            return HttpResponseBadRequest("Invalid JSON")
         order_item = get_object_or_404(OrderItem, pk=pk)
         try:
             schema = OrderItemSchema(**data)
         except ValidationError as e:
-            return Response(e.errors(), status=400)
+            return JsonResponse(e.errors(), status=400)
         for key, value in schema.dict(exclude_unset=True).items():
             setattr(order_item, key, value)
         order_item.save()
         return JsonResponse(OrderItemSchema.from_orm(order_item).dict())
 
 class DeliveryView(APIView):
-    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -174,11 +174,11 @@ class DeliveryView(APIView):
     def post(self, request):
         data = parse_json_request(request)
         if data is None:
-            return Response({"error": "Invalid JSON"}, status=400)
+            return HttpResponseBadRequest("Invalid JSON")
         try:
             schema = DeliverySchema(**data)
         except ValidationError as e:
-            return Response(e.errors(), status=400)
+            return JsonResponse(e.errors(), status=400)
         delivery = Delivery(**schema.dict(exclude_unset=True))
         delivery.save()
         return JsonResponse(DeliverySchema.from_orm(delivery).dict())
@@ -187,18 +187,21 @@ class DeliveryView(APIView):
     def put(self, request, pk):
         data = parse_json_request(request)
         if data is None:
-            return Response({"error": "Invalid JSON"}, status=400)
+            return HttpResponseBadRequest("Invalid JSON")
         delivery = get_object_or_404(Delivery, pk=pk)
         try:
             schema = DeliverySchema(**data)
         except ValidationError as e:
-            return Response(e.errors(), status=400)
+            return JsonResponse(e.errors(), status=400)
         for key, value in schema.dict(exclude_unset=True).items():
             setattr(delivery, key, value)
         delivery.save()
         return JsonResponse(DeliverySchema.from_orm(delivery).dict())
 
 class CartView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, tenant_id):
         tenant = get_object_or_404(Tenant, id=tenant_id)
         carts = Cart.objects.filter(user=request.user, tenant=tenant, expires_at__gt=timezone.now())
@@ -237,6 +240,9 @@ class CartView(APIView):
         return Response({'message': 'Items added to cart'}, status=status.HTTP_201_CREATED)
 
 class OrderFromCartView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
         try:
             data = OrderFromCartSchema.parse_obj(request.data)

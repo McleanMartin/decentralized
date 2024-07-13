@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-from .views import TenantView, ProductView, OrderView, OrderItemView, DeliveryView
+from .views import *
 
 app_name = 'core'
 
@@ -19,5 +19,8 @@ urlpatterns = [
     path('api/order-items/', OrderItemView.as_view(), name='orderitem-list'),
     path('api/order-items/<int:pk>/', OrderItemView.as_view(), name='orderitem-detail'), 
     path('api/deliveries/', DeliveryView.as_view(), name='delivery-list'),
-    path('api/deliveries/<int:pk>/', DeliveryView.as_view(), name='delivery-detail'),
+    path('api/deliveries/<int:pk>/', DeliveryView.as_view(), name='delivery-detail'),path('api/cart/<int:tenant_id>/', CartView.as_view(), name='view_cart'),
+    path('api/cart/add/<int:tenant_id>/', CartView.as_view(), name='add_to_cart'),
+    path('api/cart/create-order/', OrderFromCartView.as_view(), name='create_order_from_cart'),
+
 ]
